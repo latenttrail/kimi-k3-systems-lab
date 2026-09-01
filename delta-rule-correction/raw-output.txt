@@ -1,0 +1,113 @@
+Kimi K3 Systems Lab - Experiment 01: delta-rule correction
+==========================================
+
+Claim under test
+----------------
+An additive linear-attention memory cannot correct a fact. Writing a new value
+under a key it has already seen leaves it answering with the SUM of the old and
+new values. The delta rule writes the ERROR instead of the value, and answers
+with the current value.
+
+Evidence class : Teaching miniature (Tier 1, CPU)
+Provenance     : Ankit run. The delta rule is Widrow & Hoff (1960); its use as a
+                 linear-attention update is DeltaNet (Schlag, Irie & Schmidhuber,
+                 2021), and the gated form is Gated DeltaNet (Yang et al., 2024).
+
+Scope boundary
+--------------
+This is a 4x4 single-head miniature with hand-chosen unit-norm keys. It
+demonstrates a WRITE-POLICY property of the two update rules. It establishes
+NOTHING about Kimi K3's accuracy, throughput, latency, or quality. No trained
+weights are involved.
+
+Dependencies
+------------
+Python 3 standard library only. No numpy, no torch, no GPU.
+Written in plain Python so the result can be reproduced by anyone in about two
+seconds with no install.
+
+========================================================================
+SCENARIO 1 - a setting is changed:  'max_batch is 8' then 'raised to 20'
+========================================================================
+
+Additive linear attention  ->  S = S + v k^T
+  after writing 8:
+      8.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+  after writing 20:
+     28.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+
+  query 'max_batch' -> [ 28.00,   0.00,   0.00,   0.00]   <-- answers 28.0
+  8 and 20 were both written. Neither was ever 28.
+
+Delta rule  ->  S = S + beta * (v - S k) k^T,  beta = 1.0
+  after writing 8:
+      8.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+    predicted for this key: [  8.00,   0.00,   0.00,   0.00]
+    error it writes:        [ 12.00,   0.00,   0.00,   0.00]   <-- 20 - 8 = 12, not 20
+  after writing 20:
+     20.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+      0.00   0.00   0.00   0.00
+
+  query 'max_batch' -> [ 20.00,   0.00,   0.00,   0.00]   <-- answers 20.0
+
+========================================================================
+SCENARIO 2 - the same fact is simply repeated 5 times
+========================================================================
+
+  Natural text repeats entities constantly. Nothing is being corrected here.
+
+    writes |   additive |    delta
+  ---------+------------+---------
+         1 |       8.00 |     8.00
+         2 |      16.00 |     8.00
+         3 |      24.00 |     8.00
+         4 |      32.00 |     8.00
+         5 |      40.00 |     8.00
+
+  Additive memory inflates the value it already holds, once per mention.
+  The delta rule's error is zero after the first write, so it writes nothing.
+
+========================================================================
+SCENARIO 3 - beta is a write strength, not a switch
+========================================================================
+
+  In KDA beta is produced per token by a learned projection through a
+  sigmoid, so it lies strictly between 0 and 1. The model chooses, token
+  by token, how hard to overwrite. Endpoints shown for the mechanism only.
+
+    beta |  answer after correction
+  -------+-------------------------
+    0.00 |                     8.00
+    0.25 |                    11.00
+    0.50 |                    14.00
+    0.75 |                    17.00
+    1.00 |                    20.00
+
+  beta = 0 keeps the old fact. beta = 1 replaces it exactly.
+  Exact replacement at beta = 1 depends on the key being unit-norm.
+
+========================================================================
+RESULT
+========================================================================
+
+  additive linear attention answered  28.0
+  delta rule answered                 20.0
+
+  Both memories are the same size: 4 x 4 numbers. The difference is not
+  capacity. It is the write policy.
+
+  A memory that can only add cannot correct itself.
+
+  All assertions passed.
+

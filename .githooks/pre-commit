@@ -1,0 +1,12 @@
+#!/bin/sh
+# Sourcing policy gate. See "SOURCING POLICY.md" in the Personal Branding folder.
+# Blocks a commit that names private study material, or that leaks an internal
+# alias onto a published surface.
+CHECKER="$(git rev-parse --show-toplevel)/../../tools/check-sourcing.py"
+[ -f "$CHECKER" ] || { echo "sourcing checker not found at $CHECKER — commit blocked"; exit 1; }
+python3 "$CHECKER" --staged || {
+  echo
+  echo "Commit blocked by the sourcing policy."
+  echo "Fix the lines above, or run with --no-verify only if you are certain."
+  exit 1
+}

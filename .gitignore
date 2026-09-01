@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Experiment directories are kept out of the initial checkout until their source is ready.
+/post-01-delta-rule/
+/post-02-million-token-cost/
+/post-03-flashattention-boundary/
+/post-04-retrieval-cliff/
+/post-05-counting-the-config/
+/post-06-output-gate/
+/post-09-router-health/
+/post-11-decoupled-rope/
+/post-16-threshold-trap/
+/post-17-catch-rate/
+/post-24-wrong-axis/
+/post-13-preservation-ledger/
+/post-22-sparsity-memory/
+/post-27-cost-per-token/
+/post-28-self-hosting/
