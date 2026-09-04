@@ -1,0 +1,105 @@
+
+==========================================================================
+INPUTS  (released config values, treated as given)
+==========================================================================
+
+  num_hidden_layers                  93
+  num_attention_heads                96
+  head_dim                          128
+  max_position_embeddings     1,048,576   (= 2**20)
+  activation dtype             bfloat16   (2 bytes/scalar)
+
+
+==========================================================================
+COST 1  -  the score matrix is quadratic in sequence length
+==========================================================================
+
+  Standard attention scores every query against every key, so each head forms
+  a T x T matrix. Byte counts below are exact: T * T * bytes_per_scalar.
+
+           T |    fp32 per head |    bf16 per head
+  -----------+------------------+-----------------
+       1,024 |          4.0 MiB |          2.0 MiB
+       2,048 |         16.0 MiB |          8.0 MiB
+       4,096 |         64.0 MiB |         32.0 MiB
+       8,192 |        256.0 MiB |        128.0 MiB
+     131,072 |     65,536.0 MiB |     32,768.0 MiB
+   1,048,576 |         4.00 TiB |         2.00 TiB  <-- 1M context
+
+  Each doubling of T quadruples the matrix: 4 -> 16 -> 64 -> 256 MiB.
+  At T = 1,048,576 one head in bf16 wants 2.0 TiB.
+  That is ONE head, of 96, in ONE layer, of 93.
+
+
+==========================================================================
+COST 2  -  the KV cache is linear in T, with a very large constant
+==========================================================================
+
+  Generation caches one key and one value vector per head, per layer, per
+  token. Unit check runs left to right:
+
+    heads x head_dim x 2 tensors x bytes  =  bytes per layer per token
+
+    96 x 128 x 2 x 2 = 49,152 bytes  = 48 KiB  per layer per token
+    x 93 layers      = 4,571,136 bytes  = 4.36 MiB  per token, whole stack
+
+     context T |       KV cache |   vs 8x B300 node
+  -------------+----------------+------------------
+         8,192 |        37.4 GB |             0.02x
+       131,072 |       599.1 GB |             0.26x
+     1,048,576 |     4,793.2 GB |             2.08x
+
+  Hand-check of the two headline figures:
+    128K context : 599,147,937,792 bytes = 599.1 GB
+    1M   context : 4,793,183,502,336 bytes = 4,793.2 GB = 4.79 TB
+
+  An 8-GPU node at 288 GB each is 2.30 TB of HBM,
+  and that node has to hold the 2.8T-parameter model as well.
+
+  A single 1M-token sequence would need 2.08x the node's ENTIRE memory,
+  weights included. Batch size one. Before any weights are loaded.
+
+
+  The KV cache alone fills the whole node at 504,032 tokens.
+  That is 48% of the declared 1,048,576-token window,
+  and it assumes zero bytes are spent on the model itself.
+
+
+==========================================================================
+COST 3  -  the arithmetic floor, in FLOPs
+==========================================================================
+
+  Scoring T queries against T keys costs 2 * T^2 * head_dim FLOPs per head
+  (one multiply and one add per product). Applying the weights to V costs the
+  same shape of work again.
+
+    scores (Q @ K^T) : 2.513e+18 FLOPs
+    weights @ V      : 2.513e+18 FLOPs
+    total            : 5.026e+18 FLOPs   = 5.03 exaFLOPs
+
+  5.03 exaFLOPs for the attention arithmetic of ONE forward pass over
+  a million tokens, before a single MLP or projection is counted.
+
+  Growth between 128K and 1M context is quadratic: 8x the tokens, 64x the work.
+
+
+==========================================================================
+RESULT
+==========================================================================
+
+  Reading K3's declared 1M context through a dense-attention architecture gives
+  two independent walls, from the same config:
+
+    memory   4.8 TB of KV cache for one sequence  (2.08x the whole node)
+    compute  5.03 exaFLOPs of attention per forward pass
+
+  Neither is a benchmark. Both are arithmetic, and arithmetic is enough to
+  rule the design out. A context-length claim is not an architecture until
+  someone has done this sum.
+
+  Again: this prices the dense model K3's designers REFUSED to build.
+  K3's own answer - a fixed-size state on 69 layers, a 512-wide compressed
+  latent on the other 24 - is a later post, and needs its own arithmetic.
+
+  All assertions passed.
+
