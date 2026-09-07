@@ -51,8 +51,7 @@ BYTES_FP32    = 4
 # Moonshot's own deployment guidance is NOT cited here and must not be inferred:
 # an earlier draft called this 'the recommended node', which attributed a
 # recommendation to the model's authors that they did not make.
-NODE_HBM_BYTES = 8 * 288 * 10**9   # 8 x 288 GB
-                                   # single-node deployment. ~2.30 TB.
+NODE_HBM_BYTES = 8 * 288 * 10**9   # 8 x 288 GB = 2.30 TB
 
 GB  = 10**9      # decimal GB, the unit GPU memory is marketed in
 TB  = 10**12

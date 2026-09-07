@@ -4,8 +4,6 @@ __pycache__/
 
 # Experiment directories are kept out of the initial checkout until their source is ready.
 /post-01-delta-rule/
-/million-token-attention/
-/post-03-flashattention-boundary/
 /post-04-retrieval-cliff/
 /post-05-counting-the-config/
 /post-06-output-gate/

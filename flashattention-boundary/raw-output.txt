@@ -1,0 +1,91 @@
+
+==========================================================================
+THE THREE COSTS OF DENSE ATTENTION AT T = 1,048,576
+==========================================================================
+
+  A  score-matrix storage        2.0 TiB per head
+                                 211 TB for one layer's 96 heads
+  B  attention arithmetic       5.03 exaFLOPs per forward pass
+  C  KV cache                   4.79 TB for one sequence
+                            (2.08x the 8x B300 node's total HBM)
+
+
+==========================================================================
+WHAT TILING CHANGES
+==========================================================================
+
+  A tiled kernel never forms the whole T x T matrix. It walks blocks of queries
+  against blocks of keys, keeps each block's scores in on-chip memory, folds
+  them into a running softmax, and discards them. The output is identical.
+
+  With a 128 x 128 block:
+    live score memory per block           32 KiB
+    blocks that must be visited   67,108,864
+    score entries computed         1.100e+12   (unchanged)
+
+  Peak score storage falls from 2.0 TiB to 32 KiB per head - a
+  reduction of about 67,108,864x. Every one of the 1.10e+12 score entries
+  is still computed. Nothing was skipped; the results were consumed and thrown
+  away instead of stored.
+
+
+==========================================================================
+THE LEDGER
+==========================================================================
+
+  cost                        before tiling      after tiling      removed?
+  --------------------------------------------------------------------------
+  A  score storage/head             2.0 TiB          32 KiB   YES
+  B  attention FLOPs               5.03 EFLOP      5.03 EFLOP  NO
+  C  KV cache                      4.79 TB         4.79 TB     NOT ADDRESSED
+
+  Tiling is an answer to exactly one row.
+
+
+========================================================================
+TRANSIENT AGAINST PERSISTENT
+========================================================================
+
+  score matrix, one head       2.20 TB   transient, one forward pass
+  KV cache, one sequence       4.79 TB   persistent, re-read every token
+  ------------------------ -----------
+  the wall tiling leaves is 2.18x the wall it removes
+
+  The two are equal only at 2,285,568 tokens, which is 2.18x
+  K3's declared window. Below that point, the cost a kernel cannot touch is
+  always the larger one.
+
+
+==========================================================================
+WHY ROW C IS THE ONE THAT DECIDES THE ARCHITECTURE
+==========================================================================
+
+  Row A and row B are prefill costs - the one-time pass over a long prompt.
+  Row C is a per-token cost that persists for the whole conversation, and it
+  gets worse in a way the other two do not: to emit each new token, attention
+  must read the entire cache back. At 1M context that is a 4.8 TB read per
+  generated token.
+
+  So a system can adopt the best tiled kernel available and still be unable to
+  serve this context, because the wall it hits is the cache it must stream, not
+  the matrix it declined to store.
+
+  This derivation does not identify which architectural mechanism should reduce
+  row C for a real model. That requires separate released architectural evidence;
+  it cannot be inferred from this dense counterfactual alone.
+
+
+==========================================================================
+RESULT
+==========================================================================
+
+  Tiling cut peak score storage by a factor of about 67 million.
+  It cut the arithmetic by nothing at all.
+
+  Avoiding materialization is not avoiding computation.
+
+  A kernel optimization changes where a cost is paid. An architecture change is
+  what removes one.
+
+  All assertions passed.
+

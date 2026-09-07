@@ -8,8 +8,13 @@ article, or presentation, the script that computed it is here, along with its ra
 
 ## Experiments
 
-The first experiment studies how additive and delta-rule memories handle corrections and repeated
-facts. Further experiments are added only when their inputs and limits can be checked locally.
+| Experiment | What it checks | Evidence class |
+| --- | --- | --- |
+| `delta-rule-correction/` | Why a memory that can only add cannot replace a stale fact. | Teaching miniature |
+| `million-token-attention/` | The dense KV-cache and attention-arithmetic bill at one million tokens. | Derived |
+| `flashattention-boundary/` | Which dense-attention cost tiling removes—and which ones remain. | Derived |
+
+Further experiments are added only when their inputs and limits can be checked locally.
 
 ## Running any of it
 
@@ -17,6 +22,8 @@ Python 3, standard library only. No numpy, no torch, no GPU, no install.
 
 ```bash
 python3 delta-rule-correction/delta_rule_correction.py
+python3 million-token-attention/attention_cost_at_1m.py
+python3 flashattention-boundary/flashattention_boundary.py
 ```
 
 Each script asserts its own headline figures, so a transcription error fails loudly. The
@@ -35,8 +42,9 @@ labels, and they are not interchangeable:
 | **Released** | A primary release, configuration, or licence fact, retained with source and date. |
 | **Measured by us** | A run of mine, with hardware, software, configuration, workload, date, raw output, and exclusions. |
 | **Derived** | Arithmetic from named inputs, with formula, units, and assumptions stated. |
+| **Configured** | A setting or declared value. It is never presented as observed behaviour. |
 | **Teaching miniature** | A deliberately reduced model or test that preserves a named relationship but establishes nothing about Kimi K3's performance. |
-| **Reconstructed** | An inference about unpublished wiring, constrained by released artifacts and explicitly not published by Moonshot. |
+| **Reconstructed** | A falsifiable hypothesis about unpublished wiring, constrained by public artifacts. It must state its assumptions, alternatives, and a falsifier; it is never a route around private-source restrictions. |
 
 A claim also states its provenance: primary release, my own run, or derivation. **Someone else's
 experiment is never labelled "measured by us."**
