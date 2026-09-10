@@ -13,6 +13,7 @@ article, or presentation, the script that computed it is here, along with its ra
 | `delta-rule-correction/` | Why a memory that can only add cannot replace a stale fact. | Teaching miniature |
 | `million-token-attention/` | The dense KV-cache and attention-arithmetic bill at one million tokens. | Derived |
 | `flashattention-boundary/` | Which dense-attention cost tiling removes—and which ones remain. | Derived |
+| `retrieval-cliff/` | Why a retrieval error alone cannot tell you which failure it is. | Teaching miniature |
 
 Further experiments are added only when their inputs and limits can be checked locally.
 
@@ -24,6 +25,7 @@ Python 3, standard library only. No numpy, no torch, no GPU, no install.
 python3 delta-rule-correction/delta_rule_correction.py
 python3 million-token-attention/attention_cost_at_1m.py
 python3 flashattention-boundary/flashattention_boundary.py
+python3 retrieval-cliff/retrieval_cliff.py
 ```
 
 Each script asserts its own headline figures, so a transcription error fails loudly. The
