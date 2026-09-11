@@ -1,0 +1,102 @@
+Kimi K3 parameter-count derivation
+==================================
+
+Claim under test
+----------------
+A config file is a blueprint, not an inventory - and the difference is one key
+you have not noticed yet.
+
+Counting Kimi K3's parameters the obvious way gives 5.47 trillion against a
+published 2.8 trillion: nearly double. The gap is not an arithmetic error. It is
+a released architectural distinction: the routed experts use a 3,584-wide latent
+space rather than the model's 7,168-wide hidden state.
+
+Evidence class : Released + Derived (Tier 0)
+Provenance     : Ankit derivation. Config read first-hand from
+                 https://huggingface.co/moonshotai/Kimi-K3/raw/main/config.json
+                 Architecture mapping read first-hand from Moonshot AI's Kimi K3
+                 Technical Report, §2.3:
+                 https://github.com/MoonshotAI/Kimi-K3/blob/main/k3_tech_report.pdf
+
+Scope boundary
+--------------
+This counts the model the config DESCRIBES. It is not a tensor inventory of the
+released checkpoint - no shard was opened. Where the two disagree, the checkpoint
+wins.
+
+Dependencies
+------------
+Python 3 standard library only.
+
+==========================================================================
+STEP 1 - COUNT IT THE OBVIOUS WAY
+==========================================================================
+
+  Every expert an MLP over the 7,168-wide residual stream, which is what an
+  expert normally is:
+
+    896 routed + 2 shared, each 3 x 7,168 x 3,072
+    x 92 MoE layers
+
+    embeddings                2.35 B
+    attention                13.40 B
+    dense MLP                 0.73 B
+    routers                   0.59 B
+    experts                5457.64 B
+    -------------------- ------------
+    TOTAL                     5.47 T     published: 2.8 T
+
+  Off by +95.5%. Not a rounding error - nearly double.
+
+
+==========================================================================
+STEP 2 - THE KEY I HAD NOT NOTICED
+==========================================================================
+
+  routed_expert_hidden_size: 3584
+
+  The residual stream is 7,168 wide. The routed experts are 3,584.
+
+  The Kimi K3 technical report says the routed branch projects the full-width
+  input into a latent, dispatches that latent to selected routed experts, then
+  projects their aggregate back. The shared experts process the full-width input.
+
+  That single key halves the largest term in the count.
+
+
+==========================================================================
+STEP 3 - COUNT IT AGAIN
+==========================================================================
+
+    embeddings                          2.35 B
+    attention (24 MLA + 69 KDA)          13.40 B
+    dense MLP                           0.73 B
+    routers                             0.59 B
+    routed experts (3,584 wide)      2722.74 B
+    shared experts (7,168 wide)         12.16 B
+    ----------------------------- ------------
+    TOTAL                              2.752 T
+
+    published                          2.800 T
+    gap                                 -1.7 %
+
+  That lands within a couple of per cent of the published figure, from public
+  values and arithmetic alone. This is still an estimate, not a checkpoint tensor
+  inventory: the KDA projection budget is an explicit approximation and other
+  unmodelled components can contribute to the remaining difference.
+
+
+==========================================================================
+RESULT
+==========================================================================
+
+  First count: 5.47 T. Published: 2.8 T. Second count: 2.75 T.
+
+  Nothing changed except that I read one more line of the config. The obvious
+  count was not sloppy - it applied a different architecture to this model.
+
+  That is what a config is. Not an inventory, and not self-explanatory: a set of
+  keys where the one you skim past is the one carrying half the parameters.
+
+  Count the instantiated model, not the architecture you meant to build.
+
