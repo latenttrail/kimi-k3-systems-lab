@@ -158,15 +158,48 @@ if __name__ == "__main__":
 """)
     assert abs(gap) < 0.06, "the corrected count should land close to the published total"
 
+    rule("STEP 4 - WHAT THE CORRECTED BUDGET THEN SAYS")
+
+    always_on = shared + attn + dense + router + emb
+    routed_share = routed / total * 100
+    always_share = always_on / total * 100
+    fire_share = N_ACTIVE_EXPERTS / N_EXPERTS * 100
+    print(f"""
+  A count that lands is also a budget, and this one is lopsided:
+
+    routed experts                {routed/B:>10.2f} B   {routed_share:>5.1f} %
+    everything always on          {always_on/B:>10.2f} B   {always_share:>5.1f} %
+    {'-'*29} {'-'*12}
+    TOTAL                         {total/T:>10.3f} T
+
+  "Everything always on" is both shared experts plus attention, the dense MLP,
+  the routers and the embeddings - every parameter that participates in a token
+  regardless of routing.
+
+  Those two paths are not built at the same width. The always-on path runs at
+  the full {HIDDEN:,}. The routed path runs at {ROUTED_EXPERT_HIDDEN:,}, and only {N_ACTIVE_EXPERTS} of its
+  {N_EXPERTS} experts ({fire_share:.1f} %) fire for any given token.
+
+  Full width where it always runs. Half width where it sometimes does.
+
+  That is a description of the budget, not of anyone's reasoning. The config
+  states no rationale, and intent is not recoverable from arithmetic.
+""")
+    assert routed_share > 98, "routed experts should dominate the corrected total"
+    assert abs(routed_share + always_share - 100) < 1e-9
+
     rule("RESULT")
     print(f"""
   First count: {naive/T:.2f} T. Published: {TOTAL_PARAMS_PUB/T:.1f} T. Second count: {total/T:.2f} T.
 
-  Nothing changed except that I read one more line of the config. The obvious
-  count was not sloppy - it applied a different architecture to this model.
+  One term separates them, and the size of the miss is the measurement: the
+  expert width is worth {(naive_experts - routed - shared)/T:.2f} T. That makes it the largest single
+  decision in this model by parameter count, and it is one key of the config.
 
-  That is what a config is. Not an inventory, and not self-explanatory: a set of
-  keys where the one you skim past is the one carrying half the parameters.
+  The obvious count was not sloppy. It was exact arithmetic for a different
+  architecture, which is what makes the published total useful - not as an
+  answer to copy, but as the thing a derivation has to miss before you know
+  which assumption to go and check.
 
   Count the instantiated model, not the architecture you meant to build.
 """)

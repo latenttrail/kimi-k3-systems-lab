@@ -41,6 +41,13 @@ $ python3 count_the_config.py
 3. **The corrected count lands at −1.7% of published**, from public values and arithmetic alone.
    The published total is used as an audit invariant — something to miss against — not as an input
    to tune toward.
+4. **A count that lands is also a budget, and this one is lopsided.** Routed experts are 2,722.7 B,
+   **98.9%** of the corrected total; everything always on — both shared experts plus attention, the
+   dense MLP, the routers and the embeddings — is 29.2 B, the other 1.1%. And the two paths are not
+   built at the same width. The always-on path runs at the full 7,168. The routed path runs at
+   3,584, and only 16 of its 896 experts fire for any given token. Full width where it always runs,
+   half width where it sometimes does. That is a description of the budget, not of anyone's
+   reasoning: the config states no rationale, and intent is not recoverable from arithmetic.
 
 ## Boundary
 

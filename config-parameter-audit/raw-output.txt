@@ -87,16 +87,44 @@ STEP 3 - COUNT IT AGAIN
 
 
 ==========================================================================
+STEP 4 - WHAT THE CORRECTED BUDGET THEN SAYS
+==========================================================================
+
+  A count that lands is also a budget, and this one is lopsided:
+
+    routed experts                   2722.74 B    98.9 %
+    everything always on               29.22 B     1.1 %
+    ----------------------------- ------------
+    TOTAL                              2.752 T
+
+  "Everything always on" is both shared experts plus attention, the dense MLP,
+  the routers and the embeddings - every parameter that participates in a token
+  regardless of routing.
+
+  Those two paths are not built at the same width. The always-on path runs at
+  the full 7,168. The routed path runs at 3,584, and only 16 of its
+  896 experts (1.8 %) fire for any given token.
+
+  Full width where it always runs. Half width where it sometimes does.
+
+  That is a description of the budget, not of anyone's reasoning. The config
+  states no rationale, and intent is not recoverable from arithmetic.
+
+
+==========================================================================
 RESULT
 ==========================================================================
 
   First count: 5.47 T. Published: 2.8 T. Second count: 2.75 T.
 
-  Nothing changed except that I read one more line of the config. The obvious
-  count was not sloppy - it applied a different architecture to this model.
+  One term separates them, and the size of the miss is the measurement: the
+  expert width is worth 2.72 T. That makes it the largest single
+  decision in this model by parameter count, and it is one key of the config.
 
-  That is what a config is. Not an inventory, and not self-explanatory: a set of
-  keys where the one you skim past is the one carrying half the parameters.
+  The obvious count was not sloppy. It was exact arithmetic for a different
+  architecture, which is what makes the published total useful - not as an
+  answer to copy, but as the thing a derivation has to miss before you know
+  which assumption to go and check.
 
   Count the instantiated model, not the architecture you meant to build.
 
