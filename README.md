@@ -15,6 +15,7 @@ article, or presentation, the script that computed it is here, along with its ra
 | `flashattention-boundary/` | Which dense-attention cost tiling removes—and which ones remain. | Derived |
 | `retrieval-cliff/` | Why a retrieval error alone cannot tell you which failure it is. | Teaching miniature |
 | `config-parameter-audit/` | Counting 2.8T from the config, and the key that decides the answer. | Released + Derived |
+| `output-gate/` | Why softmax cannot return nothing, and what one multiplication changes. | Teaching miniature |
 
 Further experiments are added only when their inputs and limits can be checked locally.
 
@@ -28,6 +29,7 @@ python3 million-token-attention/attention_cost_at_1m.py
 python3 flashattention-boundary/flashattention_boundary.py
 python3 retrieval-cliff/retrieval_cliff.py
 python3 config-parameter-audit/count_the_config.py
+python3 output-gate/output_gate.py
 ```
 
 Each script asserts its own headline figures, so a transcription error fails loudly. The
