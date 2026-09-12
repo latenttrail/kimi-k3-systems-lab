@@ -3,8 +3,8 @@ Kimi K3 parameter-count derivation
 
 Claim under test
 ----------------
-A config file is a blueprint, not an inventory - and the difference is one key
-you have not noticed yet.
+A config file is a blueprint, not an inventory - and the difference can be one
+key that is easy to read past.
 
 Counting Kimi K3's parameters the obvious way gives 5.47 trillion against a
 published 2.8 trillion: nearly double. The gap is not an arithmetic error. It is
@@ -50,7 +50,7 @@ STEP 1 - COUNT IT THE OBVIOUS WAY
 
 
 ==========================================================================
-STEP 2 - THE KEY I HAD NOT NOTICED
+STEP 2 - THE DIMENSION THE COUNT ABOVE ASSUMED WRONG
 ==========================================================================
 
   routed_expert_hidden_size: 3584

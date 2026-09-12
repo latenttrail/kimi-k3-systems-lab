@@ -4,8 +4,8 @@ Kimi K3 parameter-count derivation
 
 Claim under test
 ----------------
-A config file is a blueprint, not an inventory - and the difference is one key
-you have not noticed yet.
+A config file is a blueprint, not an inventory - and the difference can be one
+key that is easy to read past.
 
 Counting Kimi K3's parameters the obvious way gives 5.47 trillion against a
 published 2.8 trillion: nearly double. The gap is not an arithmetic error. It is
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 """)
     assert naive > TOTAL_PARAMS_PUB * 1.8
 
-    rule("STEP 2 - THE KEY I HAD NOT NOTICED")
+    rule("STEP 2 - THE DIMENSION THE COUNT ABOVE ASSUMED WRONG")
     print(f"""
   routed_expert_hidden_size: {ROUTED_EXPERT_HIDDEN}
 

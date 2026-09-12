@@ -18,7 +18,7 @@ $ python3 count_the_config.py
     TOTAL                     5.47 T     published: 2.8 T
     Off by +95.5%.
 
-  STEP 2 - THE KEY I HAD NOT NOTICED
+  STEP 2 - THE DIMENSION THE COUNT ABOVE ASSUMED WRONG
     routed_expert_hidden_size: 3584
 
   STEP 3 - COUNT IT AGAIN
