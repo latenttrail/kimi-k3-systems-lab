@@ -9,7 +9,7 @@ layer's output is a weighted average of its value vectors and is trapped inside 
 a value it can reach. A layer with nothing useful to add must still add its best guess, at full
 strength.
 
-![Output gate visual](visual/output-gate-dark.png)
+![Output gate visual](output-gate-dark.png)
 
 ```
 $ python3 output_gate.py

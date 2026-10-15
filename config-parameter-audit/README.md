@@ -8,7 +8,7 @@ Counting Kimi K3's parameters the obvious way — every expert an MLP over the 7
 stream — gives 5.47 trillion against a published 2.8 trillion. Nearly double. The multiplication is
 correct. The architecture it describes is not the one that was built.
 
-![Parameter count correction](visual/config-parameter-audit-dark.png)
+![Parameter count correction](config-parameter-audit-dark.png)
 
 ```
 $ python3 count_the_config.py

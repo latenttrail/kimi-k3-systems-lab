@@ -8,7 +8,7 @@ An additive linear-attention memory cannot correct a fact. Write a new value und
 already seen and it answers with the *sum* of the old and new values. The delta rule writes the
 **error** instead of the value, and answers with the current value.
 
-![Delta rule correction visual](visual/delta-rule-correction-dark.png)
+![Delta rule correction visual](delta-rule-correction-dark.png)
 
 ```
 $ python3 delta_rule_correction.py

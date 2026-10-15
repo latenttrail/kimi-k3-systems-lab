@@ -13,10 +13,9 @@ second experiment can.
 
 The final social-post asset uses the same audited 24-seed results in plainer language: capacity,
 unfinished learning, and a new memory disrupting old ones. The GIF has an explicit six-second
-diagnostic sequence; a high-resolution still, MP4 fallback, and editable SVG are alongside it in
-[`visual/`](visual/).
+diagnostic sequence; a high-resolution still, MP4 fallback, and editable SVG are in this folder.
 
-![When AI forgets: three questions to ask](visual/retrieval-cliff-editorial.gif)
+![When AI forgets: three questions to ask](retrieval-cliff-editorial.gif)
 
 ```
 $ python3 retrieval_cliff.py
