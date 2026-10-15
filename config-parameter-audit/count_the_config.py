@@ -58,7 +58,9 @@ N_SHARED_EXPERTS     = 2         # num_shared_experts
 MOE_INTERMEDIATE     = 3072      # moe_intermediate_size
 ROUTED_EXPERT_HIDDEN = 3584      # routed_expert_hidden_size   <-- the key
 
-TOTAL_PARAMS_PUB  = 2.8e12
+# Moonshot's public headline says 2.8T. Its technical-report table rounds
+# separately to 2.78T, so this is a comparison target, not a tensor invariant.
+TOTAL_PARAMS_HEADLINE = 2.8e12
 B, T = 1e9, 1e12
 
 
@@ -90,6 +92,11 @@ def expert(width):
     return 3 * width * MOE_INTERMEDIATE            # gate, up, down
 
 
+def routed_projections():
+    """One down and one up projection in each MoE layer; both are bias-free."""
+    return 2 * HIDDEN * ROUTED_EXPERT_HIDDEN
+
+
 if __name__ == "__main__":
     print(__doc__.split("Run\n---")[0].strip())
     n_moe = LAYERS - FIRST_K_DENSE
@@ -118,11 +125,11 @@ if __name__ == "__main__":
     shared experts      {naive_shared/B:>10.2f} B
     experts total       {naive_experts/B:>10.2f} B
     {'-'*20} {'-'*12}
-    TOTAL               {naive/T:>10.2f} T     published: {TOTAL_PARAMS_PUB/T:.1f} T
+    TOTAL               {naive/T:>10.2f} T     Moonshot headline: {TOTAL_PARAMS_HEADLINE/T:.1f} T
 
-  Off by {(naive - TOTAL_PARAMS_PUB)/TOTAL_PARAMS_PUB:+.1%}. Not a rounding error - nearly double.
+  Off by {(naive - TOTAL_PARAMS_HEADLINE)/TOTAL_PARAMS_HEADLINE:+.1%}. Not a rounding error - nearly double.
 """)
-    assert naive > TOTAL_PARAMS_PUB * 1.8
+    assert naive > TOTAL_PARAMS_HEADLINE * 1.8
 
     rule("STEP 2 - THE DIMENSION THE COUNT ABOVE ASSUMED WRONG")
     print(f"""
@@ -140,65 +147,66 @@ if __name__ == "__main__":
     rule("STEP 3 - COUNT IT AGAIN")
     routed = n_moe * N_EXPERTS * expert(ROUTED_EXPERT_HIDDEN)
     shared = n_moe * N_SHARED_EXPERTS * expert(HIDDEN)
-    total = emb + attn + dense + router + routed + shared
-    gap = (total - TOTAL_PARAMS_PUB) / TOTAL_PARAMS_PUB
+    projections = n_moe * routed_projections()
+    total = emb + attn + dense + router + projections + routed + shared
+    gap = (total - TOTAL_PARAMS_HEADLINE) / TOTAL_PARAMS_HEADLINE
     print(f"""
     embeddings                    {emb/B:>10.2f} B
     attention ({N_FULL_ATTN} MLA + {N_KDA} KDA)     {attn/B:>10.2f} B
     dense MLP                     {dense/B:>10.2f} B
     routers                       {router/B:>10.2f} B
+    routed down + up projections  {projections/B:>10.2f} B
     routed experts ({ROUTED_EXPERT_HIDDEN:,} wide)   {routed/B:>10.2f} B
     shared experts ({HIDDEN:,} wide)    {shared/B:>10.2f} B
     {'-'*29} {'-'*12}
     TOTAL                         {total/T:>10.3f} T
 
-    published                     {TOTAL_PARAMS_PUB/T:>10.3f} T
-    gap                           {gap*100:>+10.1f} %
+    Moonshot headline             {TOTAL_PARAMS_HEADLINE/T:>10.3f} T
+    gap vs headline               {gap*100:>+10.1f} %
 
   That lands within a couple of per cent of the published figure, from public
   values and arithmetic alone. This is still an estimate, not a checkpoint tensor
   inventory: the KDA projection budget is an explicit approximation and other
-  unmodelled components can contribute to the remaining difference.
+  unmodelled components can contribute to the remaining difference. The report's
+  architecture table reports 2.78T, a separately rounded published figure.
 """)
     assert abs(gap) < 0.06, "the corrected count should land close to the published total"
 
     rule("STEP 4 - WHAT THE CORRECTED BUDGET THEN SAYS")
 
-    always_on = shared + attn + dense + router + emb
+    non_routed = projections + shared + attn + dense + router + emb
     routed_share = routed / total * 100
-    always_share = always_on / total * 100
+    non_routed_share = non_routed / total * 100
     fire_share = N_ACTIVE_EXPERTS / N_EXPERTS * 100
     print(f"""
   A count that lands is also a budget, and this one is lopsided:
 
     routed experts                {routed/B:>10.2f} B   {routed_share:>5.1f} %
-    everything always on          {always_on/B:>10.2f} B   {always_share:>5.1f} %
+    estimated non-routed budget   {non_routed/B:>10.2f} B   {non_routed_share:>5.1f} %
     {'-'*29} {'-'*12}
     TOTAL                         {total/T:>10.3f} T
 
-  "Everything always on" is both shared experts plus attention, the dense MLP,
-  the routers and the embeddings - every parameter that participates in a token
-  regardless of routing.
+  The estimated non-routed budget includes the shared experts, attention, dense
+  MLP, routers, embeddings, and the routed branch's down/up projections. It is
+  not an active-parameter count.
 
-  Those two paths are not built at the same width. The always-on path runs at
-  the full {HIDDEN:,}. The routed path runs at {ROUTED_EXPERT_HIDDEN:,}, and only {N_ACTIVE_EXPERTS} of its
+  The main hidden state is {HIDDEN:,} wide. The routed path runs at {ROUTED_EXPERT_HIDDEN:,}, and only {N_ACTIVE_EXPERTS} of its
   {N_EXPERTS} experts ({fire_share:.1f} %) fire for any given token.
-
-  Full width where it always runs. Half width where it sometimes does.
 
   That is a description of the budget, not of anyone's reasoning. The config
   states no rationale, and intent is not recoverable from arithmetic.
 """)
     assert routed_share > 98, "routed experts should dominate the corrected total"
-    assert abs(routed_share + always_share - 100) < 1e-9
+    assert abs(routed_share + non_routed_share - 100) < 1e-9
 
     rule("RESULT")
     print(f"""
-  First count: {naive/T:.2f} T. Published: {TOTAL_PARAMS_PUB/T:.1f} T. Second count: {total/T:.2f} T.
+  First count: {naive/T:.2f} T. Moonshot headline: {TOTAL_PARAMS_HEADLINE/T:.1f} T. Second count: {total/T:.2f} T.
 
   One term separates them, and the size of the miss is the measurement: the
-  expert width is worth {(naive_experts - routed - shared)/T:.2f} T. That makes it the largest single
-  decision in this model by parameter count, and it is one key of the config.
+  expert width is worth {(naive_experts - routed - shared)/T:.2f} T. The corrected count also includes
+  {projections/B:.2f} B of down/up projections that the full-width counterfactual has no reason to use.
+  Expert width remains the largest single decision in this model by parameter count, and it is one key of the config.
 
   The obvious count was not sloppy. It was exact arithmetic for a different
   architecture, which is what makes the published total useful - not as an

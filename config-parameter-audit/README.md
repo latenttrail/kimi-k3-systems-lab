@@ -17,7 +17,7 @@ $ python3 count_the_config.py
     routed experts         5445.48 B
     shared experts           12.16 B
     experts total          5457.64 B
-    TOTAL                     5.47 T     published: 2.8 T
+    TOTAL                     5.47 T     Moonshot headline: 2.8 T
     Off by +95.5%.
 
   STEP 2 - THE DIMENSION THE COUNT ABOVE ASSUMED WRONG
@@ -25,10 +25,11 @@ $ python3 count_the_config.py
 
   STEP 3 - COUNT IT AGAIN
     routed experts (3,584 wide)      2722.74 B
+    routed down + up projections        4.73 B
     shared experts (7,168 wide)        12.16 B
-    TOTAL                              2.752 T
-    published                          2.800 T
-    gap                                 -1.7 %
+    TOTAL                              2.757 T
+    Moonshot headline                  2.800 T
+    gap vs headline                     -1.5 %
 ```
 
 ## What the script shows
@@ -40,14 +41,15 @@ $ python3 count_the_config.py
 2. **One released key carries the difference.** `hidden_size` is 7,168 and
    `routed_expert_hidden_size` is 3,584. Moonshot's technical report specifies the mapping: the
    routed branch projects the full-width input into a narrower latent, dispatches that to the
-   selected routed experts, then projects the aggregate back. The two shared experts stay full width.
-3. **The corrected count lands at −1.7% of published**, from public values and arithmetic alone.
-   The published total is used as an audit invariant — something to miss against — not as an input
-   to tune toward.
+   selected routed experts, then projects the aggregate back. The two bias-free down/up matrices
+   add 4.73 B across 92 MoE layers; the two shared experts stay full width.
+3. **The corrected count lands at −1.5% of Moonshot's 2.8T headline**, from public values and
+   arithmetic alone. The technical report separately rounds its architecture-table total to 2.78T.
+   Neither figure is an input used to tune the derivation.
 4. **A count that lands is also a budget, and this one is lopsided.** Routed experts are 2,722.7 B,
-   **98.9%** of the corrected total; the **estimated non-routed budget** — including shared experts,
-   attention, dense MLP, routers and embeddings — is 29.2 B, the other 1.1%. The main hidden state
-   is 7,168 wide; the routed path is 3,584 wide, and only 16 of its 896 experts fire for any given
+   **98.8%** of the corrected total; the **estimated non-routed budget** — including shared experts,
+   attention, dense MLP, routers, embeddings, and down/up projections — is 33.9 B, the other 1.2%.
+   The main hidden state is 7,168 wide; the routed path is 3,584 wide, and only 16 of its 896 experts fire for any given
    token. This is not the 104B activated-
    parameter figure: activated parameters are a separate per-token accounting that includes selected
    routed experts. The config shows two widths; it does not state the design rationale.
@@ -58,7 +60,7 @@ This counts the model the config **describes**. It is not a tensor inventory of 
 checkpoint; no shard was opened. Where the two disagree, the checkpoint wins.
 
 Every input is labelled RELEASED in the script except one: the KDA attention projection budget is
-an explicit approximation rather than a tensor inventory. The remaining −1.7% could come from that
+an explicit approximation rather than a tensor inventory. The remaining −1.5% could come from that
 approximation or from components this short count does not model. It is not explained here, and it
 is not explained by the 104B activated-parameter figure either — the active count is a separate
 accounting problem and is deliberately not used to close this gap.
@@ -67,9 +69,10 @@ Nothing here establishes why the authors chose the design.
 
 ## Sources
 
-Both read first-hand:
+All read first-hand:
 
 - `config.json` — https://huggingface.co/moonshotai/Kimi-K3/blob/main/config.json
+- `modeling_kimi_linear.py` — https://huggingface.co/moonshotai/Kimi-K3/blob/main/modeling_kimi_linear.py
 - Kimi K3 technical report, §2.3 — https://github.com/MoonshotAI/Kimi-K3/blob/main/k3_tech_report.pdf
 
 ## Run it

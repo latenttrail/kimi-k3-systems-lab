@@ -46,7 +46,7 @@ STEP 1 - COUNT IT THE OBVIOUS WAY
     shared experts           12.16 B
     experts total          5457.64 B
     -------------------- ------------
-    TOTAL                     5.47 T     published: 2.8 T
+    TOTAL                     5.47 T     Moonshot headline: 2.8 T
 
   Off by +95.5%. Not a rounding error - nearly double.
 
@@ -74,18 +74,20 @@ STEP 3 - COUNT IT AGAIN
     attention (24 MLA + 69 KDA)          13.40 B
     dense MLP                           0.73 B
     routers                             0.59 B
+    routed down + up projections        4.73 B
     routed experts (3,584 wide)      2722.74 B
     shared experts (7,168 wide)         12.16 B
     ----------------------------- ------------
-    TOTAL                              2.752 T
+    TOTAL                              2.757 T
 
-    published                          2.800 T
-    gap                                 -1.7 %
+    Moonshot headline                  2.800 T
+    gap vs headline                     -1.5 %
 
   That lands within a couple of per cent of the published figure, from public
   values and arithmetic alone. This is still an estimate, not a checkpoint tensor
   inventory: the KDA projection budget is an explicit approximation and other
-  unmodelled components can contribute to the remaining difference.
+  unmodelled components can contribute to the remaining difference. The report's
+  architecture table reports 2.78T, a separately rounded published figure.
 
 
 ==========================================================================
@@ -94,20 +96,17 @@ STEP 4 - WHAT THE CORRECTED BUDGET THEN SAYS
 
   A count that lands is also a budget, and this one is lopsided:
 
-    routed experts                   2722.74 B    98.9 %
-    everything always on               29.22 B     1.1 %
+    routed experts                   2722.74 B    98.8 %
+    estimated non-routed budget        33.95 B     1.2 %
     ----------------------------- ------------
-    TOTAL                              2.752 T
+    TOTAL                              2.757 T
 
-  "Everything always on" is both shared experts plus attention, the dense MLP,
-  the routers and the embeddings - every parameter that participates in a token
-  regardless of routing.
+  The estimated non-routed budget includes the shared experts, attention, dense
+  MLP, routers, embeddings, and the routed branch's down/up projections. It is
+  not an active-parameter count.
 
-  Those two paths are not built at the same width. The always-on path runs at
-  the full 7,168. The routed path runs at 3,584, and only 16 of its
+  The main hidden state is 7,168 wide. The routed path runs at 3,584, and only 16 of its
   896 experts (1.8 %) fire for any given token.
-
-  Full width where it always runs. Half width where it sometimes does.
 
   That is a description of the budget, not of anyone's reasoning. The config
   states no rationale, and intent is not recoverable from arithmetic.
@@ -117,11 +116,12 @@ STEP 4 - WHAT THE CORRECTED BUDGET THEN SAYS
 RESULT
 ==========================================================================
 
-  First count: 5.47 T. Published: 2.8 T. Second count: 2.75 T.
+  First count: 5.47 T. Moonshot headline: 2.8 T. Second count: 2.76 T.
 
   One term separates them, and the size of the miss is the measurement: the
-  expert width is worth 2.72 T. That makes it the largest single
-  decision in this model by parameter count, and it is one key of the config.
+  expert width is worth 2.72 T. The corrected count also includes
+  4.73 B of down/up projections that the full-width counterfactual has no reason to use.
+  Expert width remains the largest single decision in this model by parameter count, and it is one key of the config.
 
   The obvious count was not sloppy. It was exact arithmetic for a different
   architecture, which is what makes the published total useful - not as an
