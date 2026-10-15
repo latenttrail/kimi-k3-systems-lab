@@ -9,8 +9,6 @@ produce that same symptom: the iterative solve has not finished, the information
 longer fits, or new writes are damaging old ones. The error column cannot tell them apart. A
 second experiment can.
 
-![Retrieval cliff visual](visual/retrieval-cliff-dark.png)
-
 ## Publishing visual
 
 The final social-post asset uses the same audited 24-seed results in plainer language: capacity,
