@@ -42,7 +42,9 @@ STEP 1 - COUNT IT THE OBVIOUS WAY
     attention                13.40 B
     dense MLP                 0.73 B
     routers                   0.59 B
-    experts                5457.64 B
+    routed experts         5445.48 B
+    shared experts           12.16 B
+    experts total          5457.64 B
     -------------------- ------------
     TOTAL                     5.47 T     published: 2.8 T
 

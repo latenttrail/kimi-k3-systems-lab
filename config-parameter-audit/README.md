@@ -8,13 +8,15 @@ Counting Kimi K3's parameters the obvious way — every expert an MLP over the 7
 stream — gives 5.47 trillion against a published 2.8 trillion. Nearly double. The multiplication is
 correct. The architecture it describes is not the one that was built.
 
-![Parameter count correction](config-parameter-audit-dark.png)
+![Parameter count correction](config-parameter-audit-final.gif)
 
 ```
 $ python3 count_the_config.py
 
   STEP 1 - COUNT IT THE OBVIOUS WAY
-    experts                5457.64 B
+    routed experts         5445.48 B
+    shared experts           12.16 B
+    experts total          5457.64 B
     TOTAL                     5.47 T     published: 2.8 T
     Off by +95.5%.
 
@@ -31,9 +33,10 @@ $ python3 count_the_config.py
 
 ## What the script shows
 
-1. **The naive count is exact arithmetic for a different model.** 898 experts, three matrices each
-   at 7,168 × 3,072, across 92 MoE layers, is 5,457.6 B before anything else is counted. Nothing in
-   that sum is wrong except the width.
+1. **The naive count is exact arithmetic for a different model.** The 896 routed experts alone are
+   5,445.5 B at 7,168 × 3,072 across 92 MoE layers. The two shared experts add 12.2 B, producing a
+   5,457.6 B expert subtotal before anything else is counted. Nothing in that arithmetic is wrong
+   except the width assigned to the routed experts.
 2. **One released key carries the difference.** `hidden_size` is 7,168 and
    `routed_expert_hidden_size` is 3,584. Moonshot's technical report specifies the mapping: the
    routed branch projects the full-width input into a narrower latent, dispatches that to the
@@ -45,9 +48,9 @@ $ python3 count_the_config.py
    **98.9%** of the corrected total; everything always on — both shared experts plus attention, the
    dense MLP, the routers and the embeddings — is 29.2 B, the other 1.1%. And the two paths are not
    built at the same width. The always-on path runs at the full 7,168. The routed path runs at
-   3,584, and only 16 of its 896 experts fire for any given token. Full width where it always runs,
-   half width where it sometimes does. That is a description of the budget, not of anyone's
-   reasoning: the config states no rationale, and intent is not recoverable from arithmetic.
+   3,584, and only 16 of its 896 experts fire for any given token. This is not the 104B activated-
+   parameter figure: activated parameters are a separate per-token accounting that includes selected
+   routed experts. The config shows two widths; it does not state the design rationale.
 
 ## Boundary
 

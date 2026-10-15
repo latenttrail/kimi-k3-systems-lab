@@ -98,7 +98,9 @@ if __name__ == "__main__":
     emb, attn = embeddings(), N_FULL_ATTN * mla_attention() + N_KDA * kda_attention()
     dense = FIRST_K_DENSE * dense_mlp()
     router = n_moe * HIDDEN * N_EXPERTS
-    naive_experts = n_moe * (N_EXPERTS + N_SHARED_EXPERTS) * expert(HIDDEN)
+    naive_routed = n_moe * N_EXPERTS * expert(HIDDEN)
+    naive_shared = n_moe * N_SHARED_EXPERTS * expert(HIDDEN)
+    naive_experts = naive_routed + naive_shared
     naive = emb + attn + dense + router + naive_experts
 
     print(f"""
@@ -112,7 +114,9 @@ if __name__ == "__main__":
     attention           {attn/B:>10.2f} B
     dense MLP           {dense/B:>10.2f} B
     routers             {router/B:>10.2f} B
-    experts             {naive_experts/B:>10.2f} B
+    routed experts      {naive_routed/B:>10.2f} B
+    shared experts      {naive_shared/B:>10.2f} B
+    experts total       {naive_experts/B:>10.2f} B
     {'-'*20} {'-'*12}
     TOTAL               {naive/T:>10.2f} T     published: {TOTAL_PARAMS_PUB/T:.1f} T
 
