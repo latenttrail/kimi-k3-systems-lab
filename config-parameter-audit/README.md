@@ -45,10 +45,10 @@ $ python3 count_the_config.py
    The published total is used as an audit invariant — something to miss against — not as an input
    to tune toward.
 4. **A count that lands is also a budget, and this one is lopsided.** Routed experts are 2,722.7 B,
-   **98.9%** of the corrected total; everything always on — both shared experts plus attention, the
-   dense MLP, the routers and the embeddings — is 29.2 B, the other 1.1%. And the two paths are not
-   built at the same width. The always-on path runs at the full 7,168. The routed path runs at
-   3,584, and only 16 of its 896 experts fire for any given token. This is not the 104B activated-
+   **98.9%** of the corrected total; the **estimated non-routed budget** — including shared experts,
+   attention, dense MLP, routers and embeddings — is 29.2 B, the other 1.1%. The main hidden state
+   is 7,168 wide; the routed path is 3,584 wide, and only 16 of its 896 experts fire for any given
+   token. This is not the 104B activated-
    parameter figure: activated parameters are a separate per-token accounting that includes selected
    routed experts. The config shows two widths; it does not state the design rationale.
 
