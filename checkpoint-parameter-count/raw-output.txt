@@ -1,0 +1,147 @@
+Kimi K3 parameter count, from the released checkpoint
+=====================================================
+
+Claim under test
+----------------
+Two honest ways to count Kimi K3's parameters both miss by about 2x, in
+opposite directions. Counting from the config with every expert at the model's
+full width gives ~5.47 trillion. Summing the element counts of the released
+checkpoint's tensors gives ~1.50 trillion. Moonshot AI's technical report says
+2.78 trillion (Table 1).
+
+The config count misses because the routed experts work in a 3,584-wide latent,
+not the 7,168-wide hidden state. The checkpoint count misses because those
+experts are stored as packed 4-bit values, two per byte, next to scale tensors
+that are not parameters at all. Counting what the files actually hold, with
+both facts applied, should land on the published figure.
+
+Evidence class : Released + Derived (Tier 2: the released checkpoint is inspected)
+Provenance     : Ankit derivation. Every tensor name, shape and dtype is read
+                 from the safetensors headers of all 96 weight shards of
+                 huggingface.co/moonshotai/Kimi-K3 at a pinned revision.
+                 Published figures: Kimi K3 Technical Report, abstract and
+                 Table 1 (https://github.com/MoonshotAI/Kimi-K3).
+
+Scope boundary
+--------------
+Headers only. A safetensors file begins with a JSON header listing every
+tensor; this script reads those bytes with HTTP range requests and never
+downloads a weight. It therefore establishes what tensors exist and how they
+are stored, not what values they hold. "Activated per token" follows one stated
+convention (output head counted, input-embedding lookup not); the report does
+not state its convention, so a match is consistency, not proof of method.
+
+Repository moonshotai/Kimi-K3 at revision f831ab66814297da540d832a5235f8e904f29d06
+
+==========================================================================
+WHAT THE 96 HEADERS CONTAIN
+==========================================================================
+
+  tensors                              497,220
+  by dtype                        BF16 2,122, F32 506, U8 494,592
+  weight bytes described                1.5609 TB
+  header bytes read to learn it           75.8 MB
+  sha256 of all headers, in order 83f1f051b8ce3606...
+
+  Every shard's tensors tile its data section exactly: no gaps, no overlaps,
+  and each tensor's byte span equals shape x dtype size.
+
+==========================================================================
+COUNT 1 - FROM THE CONFIG
+==========================================================================
+
+  Every routed expert at the model width, 7,168:
+    896 x 3 x 7,168 x 3,072 x 92 MoE layers = 5,445.5 B
+    + everything else                       = 29.2 B
+    TOTAL                                   = 5.47 T   (+97% vs the report's 2.78 T)
+
+  The config also says routed_expert_hidden_size = 3,584. Count the experts
+  at that width, add the down/up projections into and out of it:
+    TOTAL                                   = 2.757 T   (-0.84%)
+
+  That second count still had to guess one thing: the size of the 69
+  linear-attention (KDA) layers, which the config does not spell out. It
+  assumed they match the 24 standard (MLA) layers.
+
+==========================================================================
+COUNT 2 - FROM THE CHECKPOINT, NAIVELY
+==========================================================================
+
+  Add up the element count of every tensor in the files:
+    TOTAL                                   = 1.50 T   (-46% vs 2.78 T)
+
+  The config's quantization_config says why that is wrong:
+    format mxfp4-pack-quantized, 4-bit float weights,
+    one uint8 scale per group of 32
+
+    *.weight_packed    1,361.4 B elements, uint8, each holding TWO 4-bit weights
+    *.weight_scale        85.1 B elements, uint8 - storage metadata, not parameters
+    everything else       57.2 B elements, one parameter each
+
+  All 247,296 expert matrices have exactly the packed and scale shapes
+  that 3,584-wide experts with a 3,072-wide MLP imply. None is 7,168 wide.
+
+==========================================================================
+COUNT 3 - WHAT THE CHECKPOINT HOLDS
+==========================================================================
+
+  component                       parameters    share     stored as
+  routed experts                 2,722.741 B   97.94%     4.25 bits
+  attention                         36.191 B    1.30%    16.00 bits
+  shared experts                    12.155 B    0.44%    16.00 bits
+  latent down/up projections         4.727 B    0.17%    16.00 bits
+  output head                        1.174 B    0.04%    16.00 bits
+  input embedding                    1.174 B    0.04%    16.00 bits
+  dense MLP                          0.727 B    0.03%    16.00 bits
+  routers                            0.591 B    0.02%    16.00 bits
+  vision tower + projector           0.447 B    0.02%    16.00 bits
+  norms and small gates              0.004 B    0.00%    16.00 bits
+  ------------------------------------------
+  TOTAL                          2,779.932 B
+
+  report, Table 1                 2.78 T    difference -0.002%
+  report, abstract (rounded)      2.8  T    difference -0.72%
+  language model alone            2,779.5 B  (-0.02% vs Table 1)
+
+==========================================================================
+ACTIVATED PER TOKEN
+==========================================================================
+
+  non-routed language-model parameters        55.57 B   (excluding the input-embedding lookup)
+  + 16 of 896 routed experts per layer          48.62 B
+  = activated per token                      104.19 B
+
+  report, Table 1                         104.2 B   difference -0.010%
+  Counting the input embedding too gives 105.36 B; excluding the output
+  head as well gives 103.02 B. Only the stated convention matches.
+
+==========================================================================
+WHERE THE CONFIG ESTIMATE MISSED
+==========================================================================
+
+  config estimate (count 1, latent-aware)     2,756.7 B
+  checkpoint                                  2,779.9 B
+  shortfall                                      23.2 B
+
+  attention, estimated                           13.4 B   (KDA layers guessed to be MLA-sized)
+  attention, in the files                        36.2 B
+  attention alone explains                        98% of the shortfall
+
+  The part of the estimate read from the config landed; the one part it had to
+  guess is where it missed.
+
+==========================================================================
+RESULT
+==========================================================================
+
+  From the config, experts at full width:   5.47 T
+  From the checkpoint, elements summed:      1.50 T
+  From the checkpoint, read correctly:       2.7799 T   (report: 2.78 T)
+  Activated per token, stated convention:    104.19 B   (report: 104.2 B)
+
+  Both wrong counts were exact arithmetic. One missed how wide the experts
+  are; the other missed how the file stores them. The config is a blueprint
+  and the quantization config is a storage format: the count needs both.
+
+  Count the instantiated model, not the architecture you meant to build.
+

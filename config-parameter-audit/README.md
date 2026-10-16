@@ -1,3 +1,8 @@
+> **Superseded by [`../checkpoint-parameter-count`](../checkpoint-parameter-count) (2026-10-15).**
+> This folder is the config-only estimate (2.757 T, -1.5% against the headline). Reading the
+> released checkpoint's headers closed the gap: 2,779.9 B against the report's 2.78 T. The estimate's
+> shortfall was almost entirely attention, the one size this script had to guess. Kept for the record.
+
 # A config is a blueprint, not an inventory
 
 **Evidence class:** Released + Derived · **Cost tier:** 0 (arithmetic) · **Provenance:** my own derivation

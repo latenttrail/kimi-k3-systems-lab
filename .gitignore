@@ -16,3 +16,6 @@ __pycache__/
 /post-22-sparsity-memory/
 /post-27-cost-per-token/
 /post-28-self-hosting/
+
+# Post 5 header cache (~76 MB, refetched by the script at the pinned revision)
+checkpoint-parameter-count/.headers/
